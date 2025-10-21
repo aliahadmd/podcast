@@ -208,7 +208,8 @@ Required in `wrangler.jsonc` (add to `.gitignore`):
 ## 📚 Documentation
 
 ### Essential Guides
-- **[STRIPE_WORKERS_FIX.md](./STRIPE_WORKERS_FIX.md)** - ⚠️ **Must Read!** Stripe configuration for Cloudflare Workers
+- **[STRIPE_CLOUDFLARE_GUIDE.md](./STRIPE_CLOUDFLARE_GUIDE.md)** - ⭐ **Quick Start for New Projects!** Stripe + Workers
+- **[STRIPE_WORKERS_FIX.md](./STRIPE_WORKERS_FIX.md)** - ⚠️ Detailed fix explanation (this project)
 - **[SETUP.md](./SETUP.md)** - Complete setup instructions
 - **[LOCAL_DB_SETUP.md](./LOCAL_DB_SETUP.md)** - Database setup guide
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment guide
