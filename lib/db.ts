@@ -60,6 +60,10 @@ export interface PlaybackProgress {
   last_played_at: number;
 }
 
+export interface EpisodeWithPodcastPremium extends Episode {
+  podcast_is_premium: number;
+}
+
 // Database helper functions
 export class DatabaseHelper {
   private db: D1Database;
@@ -255,6 +259,19 @@ export class DatabaseHelper {
     return result || null;
   }
 
+  async getEpisodeWithPodcastByAudioUrl(audioUrl: string): Promise<EpisodeWithPodcastPremium | null> {
+    const result = await this.db
+      .prepare(
+        `SELECT e.*, p.is_premium as podcast_is_premium
+         FROM episodes e
+         JOIN podcasts p ON e.podcast_id = p.id
+         WHERE e.audio_url = ?`
+      )
+      .bind(audioUrl)
+      .first<EpisodeWithPodcastPremium>();
+    return result || null;
+  }
+
   async createEpisode(episode: Omit<Episode, 'created_at' | 'updated_at'>): Promise<Episode> {
     const now = Date.now();
     await this.db
@@ -368,4 +385,3 @@ export class DatabaseHelper {
     return result?.count || 0;
   }
 }
-

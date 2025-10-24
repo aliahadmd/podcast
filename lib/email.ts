@@ -15,9 +15,12 @@ export class EmailHelper {
   constructor() {
     this.env = getCloudflareEnv();
     
+    const port = parseInt(this.env.SMTP_PORT);
+
     this.transporter = nodemailer.createTransport({
       host: this.env.SMTP_HOST,
-      port: parseInt(this.env.SMTP_PORT),
+      port,
+      secure: port === 465,
       auth: {
         user: this.env.SMTP_USER,
         pass: this.env.SMTP_PASS,
@@ -340,4 +343,3 @@ export class EmailHelper {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   }
 }
-

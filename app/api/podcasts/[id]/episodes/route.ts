@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { DatabaseHelper } from '@/lib/db';
-import { requireAdmin } from '@/lib/middleware';
+import { authenticateRequest, checkSubscription, requireAdmin } from '@/lib/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -23,6 +23,33 @@ export async function GET(
   try {
     const { id } = await params;
     const db = new DatabaseHelper();
+    const podcast = await db.getPodcastById(id);
+
+    if (!podcast) {
+      return NextResponse.json(
+        { error: 'Podcast not found' },
+        { status: 404 }
+      );
+    }
+
+    if (podcast.is_premium) {
+      const { user, error } = await authenticateRequest(request);
+      if (!user) {
+        return NextResponse.json(
+          { error: error || 'Authentication required for premium content' },
+          { status: 401 }
+        );
+      }
+
+      const hasSubscription = await checkSubscription(user.id);
+      if (!hasSubscription) {
+        return NextResponse.json(
+          { error: 'Active subscription required for premium content' },
+          { status: 403 }
+        );
+      }
+    }
+
     const episodes = await db.getEpisodesByPodcastId(id);
 
     return NextResponse.json({
@@ -86,4 +113,3 @@ export async function POST(
     );
   }
 }
-

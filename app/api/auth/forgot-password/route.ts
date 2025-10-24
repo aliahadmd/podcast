@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { AuthHelper } from '@/lib/auth';
+import { getClientIdentifier, rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const forgotPasswordSchema = z.object({
@@ -10,6 +11,14 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIdentifier = getClientIdentifier(request);
+    if (!rateLimit(`forgot:${clientIdentifier}`, 3, 300_000)) {
+      return NextResponse.json({
+        success: false,
+        message: 'Too many password reset attempts. Please try again later.',
+      }, { status: 429 });
+    }
+
     const body = await request.json();
     const { email } = forgotPasswordSchema.parse(body);
 
@@ -29,4 +38,3 @@ export async function POST(request: NextRequest) {
     });
   }
 }
-

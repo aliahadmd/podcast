@@ -138,36 +138,49 @@ export class AuthHelper {
       throw new Error('User not found');
     }
 
-    const token = uuidv4();
+    const tokenId = uuidv4();
+    const rawToken = uuidv4();
+    const hashedToken = await bcrypt.hash(rawToken, 10);
     const db = this.db['db'];
     const expiresAt = Date.now() + 3600000; // 1 hour
 
     await db
       .prepare('INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, ?)')
-      .bind(uuidv4(), user.id, token, expiresAt, Date.now())
+      .bind(tokenId, user.id, hashedToken, expiresAt, Date.now())
       .run();
 
     // Send password reset email
     try {
       const { EmailHelper } = await import('./email');
       const emailHelper = new EmailHelper();
-      await emailHelper.sendPasswordResetEmail(user.email, user.name, token);
+      await emailHelper.sendPasswordResetEmail(user.email, user.name, `${tokenId}.${rawToken}`);
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       // Don't throw error - token is still valid even if email fails
     }
 
-    return token;
+    return `${tokenId}.${rawToken}`;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
+    const [tokenId, rawToken] = token.split('.');
+
+    if (!tokenId || !rawToken) {
+      throw new Error('Invalid or expired token');
+    }
+
     const db = this.db['db'];
     const resetToken = await db
-      .prepare('SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > ?')
-      .bind(token, Date.now())
-      .first<{ id: string; user_id: string }>();
+      .prepare('SELECT * FROM password_reset_tokens WHERE id = ? AND used = 0 AND expires_at > ?')
+      .bind(tokenId, Date.now())
+      .first<{ id: string; user_id: string; token: string }>();
 
     if (!resetToken) {
+      throw new Error('Invalid or expired token');
+    }
+
+    const matches = await bcrypt.compare(rawToken, resetToken.token);
+    if (!matches) {
       throw new Error('Invalid or expired token');
     }
 
@@ -181,4 +194,3 @@ export class AuthHelper {
     await db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetToken.id).run();
   }
 }
-
