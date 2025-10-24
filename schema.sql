@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at INTEGER NOT NULL
 );
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- Password Reset Tokens
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_reset_tokens_token ON password_reset_tokens(token);
-CREATE INDEX idx_reset_tokens_user ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
 
 -- Subscriptions Table
 CREATE TABLE IF NOT EXISTS subscriptions (
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_subscriptions_user ON subscriptions(user_id);
-CREATE INDEX idx_subscriptions_stripe_customer ON subscriptions(stripe_customer_id);
-CREATE INDEX idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer ON subscriptions(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 
 -- Podcasts Table
 CREATE TABLE IF NOT EXISTS podcasts (
@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS podcasts (
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
-CREATE INDEX idx_podcasts_premium ON podcasts(is_premium);
-CREATE INDEX idx_podcasts_category ON podcasts(category);
-CREATE INDEX idx_podcasts_created_by ON podcasts(created_by);
+CREATE INDEX IF NOT EXISTS idx_podcasts_premium ON podcasts(is_premium);
+CREATE INDEX IF NOT EXISTS idx_podcasts_category ON podcasts(category);
+CREATE INDEX IF NOT EXISTS idx_podcasts_created_by ON podcasts(created_by);
 
 -- Episodes Table
 CREATE TABLE IF NOT EXISTS episodes (
@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS episodes (
   FOREIGN KEY (podcast_id) REFERENCES podcasts(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_episodes_podcast ON episodes(podcast_id);
-CREATE INDEX idx_episodes_published ON episodes(published_at);
+CREATE INDEX IF NOT EXISTS idx_episodes_podcast ON episodes(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_episodes_published ON episodes(published_at);
 
 -- Playback Progress Table
 CREATE TABLE IF NOT EXISTS playback_progress (
@@ -99,9 +99,9 @@ CREATE TABLE IF NOT EXISTS playback_progress (
   UNIQUE(user_id, episode_id)
 );
 
-CREATE INDEX idx_progress_user ON playback_progress(user_id);
-CREATE INDEX idx_progress_episode ON playback_progress(episode_id);
-CREATE INDEX idx_progress_last_played ON playback_progress(last_played_at);
+CREATE INDEX IF NOT EXISTS idx_progress_user ON playback_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_progress_episode ON playback_progress(episode_id);
+CREATE INDEX IF NOT EXISTS idx_progress_last_played ON playback_progress(last_played_at);
 
 -- Analytics Table
 CREATE TABLE IF NOT EXISTS episode_plays (
@@ -113,9 +113,9 @@ CREATE TABLE IF NOT EXISTS episode_plays (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_plays_episode ON episode_plays(episode_id);
-CREATE INDEX idx_plays_user ON episode_plays(user_id);
-CREATE INDEX idx_plays_date ON episode_plays(played_at);
+CREATE INDEX IF NOT EXISTS idx_plays_episode ON episode_plays(episode_id);
+CREATE INDEX IF NOT EXISTS idx_plays_user ON episode_plays(user_id);
+CREATE INDEX IF NOT EXISTS idx_plays_date ON episode_plays(played_at);
 
 -- Session Table (for auth)
 CREATE TABLE IF NOT EXISTS sessions (
@@ -127,7 +127,29 @@ CREATE TABLE IF NOT EXISTS sessions (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_sessions_token ON sessions(token);
-CREATE INDEX idx_sessions_user ON sessions(user_id);
-CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
+-- Live Sessions Table
+CREATE TABLE IF NOT EXISTS live_sessions (
+  id TEXT PRIMARY KEY,
+  podcast_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL CHECK(status IN ('scheduled', 'live', 'ended', 'cancelled')),
+  scheduled_for INTEGER,
+  stream_input_id TEXT,
+  stream_playback_id TEXT,
+  stream_hls_url TEXT,
+  stream_dash_url TEXT,
+  is_premium INTEGER DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (podcast_id) REFERENCES podcasts(id),
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_sessions_status ON live_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_live_sessions_scheduled ON live_sessions(scheduled_for);
